@@ -13,7 +13,8 @@ _*PyMovieDb is just arrived in the web/IT market, don't hesitate to fork and add
 ****
 
 ## Installation
-Use ```pip``` to install the module from pypi like
+PyMovieDb is available on [pypi](https://pypi.org/project/PyMovieDb/). 
+Use ```pip``` to install the module from pypi
 
 ```pip install PyMovieDb```
 
