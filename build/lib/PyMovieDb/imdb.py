@@ -72,6 +72,7 @@ class IMDB:
         else:
             assert isinstance(year, int)
             url = f"https://www.imdb.com/find?q={name}+{year}"
+        # print(url)
 
         try:
             response = self.session.get(url)
@@ -81,11 +82,11 @@ class IMDB:
         results = response.html.xpath("//table[@class='findList']/tr")
 
         if tv is True:
-            results = [result for result in results if "TV Series" in result.text]
+            results = [result for result in results if "TV" in result.text]
 
         if person is True:
             results = [result for result in results if 'name' in result.find('a')[0].attrs['href']]
-
+        # print(results)
         output = []
         for result in results:
             name = result.text.replace('\n', ' ')
@@ -117,7 +118,7 @@ class IMDB:
             result = response.html.xpath("//script[@type='application/ld+json']")[0].text
             result = ''.join(result.splitlines())  # removing newlines
             result = f"""{result}"""
-            print(result)
+            # print(result)
         except IndexError:
             return self.NA
         try:
@@ -155,11 +156,11 @@ class IMDB:
                 "reviewBody": result.get("review", {"reviewBody": None}).get("reviewBody"),
                 "reviewRating": {
                     "worstRating": result.get("review", {"reviewRating": {"worstRating": None}})
-                        .get("reviewRating").get("worstRating"),
+                        .get("reviewRating",{"worstRating": None}).get("worstRating"),
                     "bestRating": result.get("review", {"reviewRating": {"bestRating": None}})
-                        .get("reviewRating").get("bestRating"),
+                        .get("reviewRating",{"bestRating": None}).get("bestRating"),
                     "ratingValue": result.get("review", {"reviewRating": {"ratingValue": None}})
-                        .get("reviewRating").get("ratingValue"),
+                        .get("reviewRating",{"ratingValue": None}).get("ratingValue"),
                 },
             },
             "rating": {
@@ -195,10 +196,30 @@ class IMDB:
          @returns:- File/movie/TV info as JSON string.
         """
         results = json.loads(self.search(name, year=year))
-        results['results'] = [i for i in self.search_results['results'] if 'title' in i['url']]
+        all_results = [i for i in self.search_results['results'] if 'title' in i['url']]
+        # print(all_results)
 
-        if tv is True:
-            results['results'] = [result for result in results['results'] if "TV" in result['name']]
+        # filtering TV and movies
+        if tv is True:  # for tv/Web-Series only
+            tv_only = [result for result in all_results if "TV" in result['name']]
+            if year is not None:
+                tv_only = [result for result in tv_only if str(year) in result['name']]
+            # double checking by file name
+            if bool(tv_only):
+                tv_only_checked = [result for result in tv_only if result['name'].lower().startswith(name.split(" ")[0].lower())]
+                tv_only = tv_only_checked if bool(tv_only_checked) else tv_only
+            results['results'] = tv_only if bool(tv_only) else all_results
+
+        else:  # for movies only
+            movie_only = [result for result in all_results if "TV" not in result['name']]
+            if year is not None:
+                movie_only = [result for result in movie_only if str(year) in result['name']]
+            # double checking by file name
+            if bool(movie_only):
+                movie_only_checked = [result for result in movie_only if result['name'].lower().startswith(name.split(" ")[0].lower())]
+                movie_only = movie_only_checked if bool(movie_only_checked) else movie_only
+            results['results'] = movie_only if bool(movie_only) else all_results
+        # print(results['results'])
 
         if len(results['results']) > 0:
             return self.get(results['results'][0].get('url'))
