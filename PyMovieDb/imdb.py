@@ -79,14 +79,15 @@ class IMDB:
         except requests.exceptions.ConnectionError as e:
             response = self.session.get(url, verify=False)
 
-        results = response.html.xpath("//table[@class='findList']/tr")
-
+        # results = response.html.xpath("//table[@class='findList']/tr")
+        results = response.html.xpath("//section[@data-testid='find-results-section-title']/div/ul/li")
+        #print(len(results))
         if tv is True:
             results = [result for result in results if "TV" in result.text]
 
         if person is True:
             results = [result for result in results if 'name' in result.find('a')[0].attrs['href']]
-        # print(results)
+        #print(results)
         output = []
         for result in results:
             name = result.text.replace('\n', ' ')
