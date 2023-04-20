@@ -295,21 +295,27 @@ class IMDB:
         except requests.exceptions.ConnectionError as e:
             response = self.session.get(url, verify=False)
 
-        div = response.html.xpath("//div[@id='main']")[0]
-        h4 = div.find('h4')
-        ul = div.find('ul')
-        data = zip(h4, ul)
         output = []
-        for zip_el in data:
-            rel_date = zip_el[0].text
-            ulist = zip_el[1].find('a')
-            for movie in ulist:
-                output.append({
-                    'id': movie.attrs['href'].split('/')[2],
-                    'name': movie.text,
-                    'url': self.baseURL + movie.attrs['href'],
-                    'release_data': rel_date
-                })
+        div = response.html.xpath("//main")[0]
+        # movies are divided/enlisted within article tag
+        articles = div.find('article')
+        for article in articles:
+            h3 = article.find('h3')[0]
+            ul = article.xpath('//ul')[0].xpath('//li')
+            for li in ul:
+                try:
+                    movie = li.find('a')[0]
+                    poster = ul[0].find('img')[0].attrs.get('src')
+                    output.append({
+                          'id': movie.attrs['href'].split('/')[2],
+                          'name': movie.text,
+                          'url': self.baseURL + movie.attrs['href'],
+                          'release_data': h3.text,
+                          'poster': poster.split(',')[0]
+                    })
+                except IndexError:
+                    pass
+
         results = {'result_count': len(output), 'results': output}
         if results['result_count'] > 0:
             return json.dumps(results, indent=2)
