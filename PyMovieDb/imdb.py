@@ -341,9 +341,13 @@ class IMDB:
             if 'title' in href:
                 # getting year
                 year = year.find('span', containing='(')[0] if bool(year.find('span', containing='(')) else ""
-                year = "".join(re.findall(r"\d+", year.text))
-                year = year[:4] + "-" + year[4:] if len(year) == 8 else year   # for TV
-                year = year if len(year) == 4 else year  # for movies
+                if year != "":
+                    year = "".join(re.findall(r"\d+", year.text))
+                    year = year[:4] + "-" + year[4:] if len(year) == 8 else year   # for TV
+                    year = year if len(year) == 4 else year  # for movies
+                else:
+                    # if year is not set, set it to unknown
+                    year = "unknown"
 
                 # getting poster
                 file_id = href.split('/')[2]
