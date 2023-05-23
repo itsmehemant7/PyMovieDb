@@ -40,13 +40,23 @@ class IMDB:
             #8. popular_tv(genre=None, start_id=1, sort_by=None)
                 -- to get IMDB popular Tv-Series
     """
-    def __init__(self):
+    def __init__(self,  lang=None):
         self.session = HTMLSession()
-        self.headers = {
+        self.lang = lang
+        if self.lang:
+            self.headers = {
            "Accept": "application/json, text/plain, */*",
            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36",
-           "Referer": "https://www.imdb.com/"
+           "Referer": "https://www.imdb.com/",
+           "Accept-Language": lang
            }
+        else:
+            self.headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36",
+            "Referer": "https://www.imdb.com/"
+            }
+
         self.baseURL = "https://www.imdb.com"
         self.search_results = {'result_count': 0, 'results': []}
         self.NA = json.dumps({"status": 404, "message": "No Result Found!", 'result_count': 0, 'results': []})
@@ -142,10 +152,10 @@ class IMDB:
                 except json.decoder.JSONDecodeError as e:
                     # invalid char(s) is/are not in description/trailer/reviewBody schema
                     return self.NA
-
         output = {
             "type": result.get('@type'),
             "name": result.get('name'),
+            "alternateName": result.get('alternateName'),
             "url": self.baseURL + result.get('url'),
             "poster": result.get('image'),
             "description": result.get('description'),
