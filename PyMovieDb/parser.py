@@ -1,55 +1,36 @@
+import html
 # for manipulate incoming data/json from IMDB (for invalid json string)
 class ImdbParser:
     """
-      - A class to manipulate incoming json string data of a movie/TV from IMDB.
-      - Changes are required as sometimes the json contains invalid chars in description/reviewBody/trailer schema
+      - A class to manipulate incoming json object data of a movie/TV from IMDB.
+      - Changes are required as sometimes the json contains escaped quotes that should be unescaped
     """
-    def __init__(self, json_string):
-        self.json_string = json_string
-
+    def __init__(self, json_obj):
+        self.json_obj = json_obj
+        self.visited = set()
+        
     @property
-    def remove_trailer(self):
+    def unescape_json_values(self):
         """
-         @description:- Helps to remove 'trailer' schema from IMDB data json string.
-         @returns:- New updated JSON string.
+        Unescape all json values in a json object
         """
-        try:
-            self.json_string = ''.join(self.json_string.splitlines())
-            trailer_i = self.json_string.index('"trailer"')
-            actor_i = self.json_string.index('"actor"')
-            to_remove = self.json_string[trailer_i:actor_i:1]
-            self.json_string = self.json_string.replace(to_remove, "")
-        except ValueError:
-            self.json_string = self.json_string
-        return self.json_string
+        if id(self.json_obj) in self.visited:
+            return self.json_obj
 
-    @property
-    def remove_description(self):
-        """
-         @description:- Helps to remove 'description' schema from IMDB file json string.
-         @returns:- New updated JSON string.
-        """
-        try:
-            review_i = self.json_string.index('"review"')
-            des_i = self.json_string.index('"description"', 0, review_i)
-            to_remove = self.json_string[des_i:review_i:1]
-            self.json_string = self.json_string.replace(to_remove, "")
-        except ValueError:
-            self.json_string = self.json_string
-        return self.json_string
+        self.visited.add(id(self.json_obj))
 
-    @property
-    def remove_review_body(self):
-        """
-         @description:- Helps to remove 'reviewBody' schema from IMDB file json string.
-         @returns:- New updated JSON string.
-        """
-        try:
-            reviewrating_i = self.json_string.index('"reviewRating"')
-            reviewbody_i = self.json_string.index('"reviewBody"', 0, reviewrating_i)
-            to_remove = self.json_string[reviewbody_i:reviewrating_i:1]
-            self.json_string = self.json_string.replace(to_remove, "")
-        except ValueError:
-            self.json_string = self.json_string
-        return self.json_string
+        if isinstance(self.json_obj, dict):
+            for key, value in self.json_obj.items():
+                if isinstance(value, str):
+                    self.json_obj[key] = html.unescape(value).replace("\n", " ").replace("  ", " ")
+                elif isinstance(value, (dict, list)):
+                    self.json_obj[key] = ImdbParser(value).unescape_json_values
 
+        elif isinstance(self.json_obj, list):
+            for i, value in enumerate(self.json_obj):
+                if isinstance(value, str):
+                    self.json_obj[i] = html.unescape(value).replace("\n", " ").replace("  ", " ")
+                elif isinstance(value, (dict, list)):
+                    self.json_obj[i] = ImdbParser(value).unescape_json_values
+
+        return self.json_obj

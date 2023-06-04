@@ -15,5 +15,5 @@ setuptools.setup(
     url="https://github.com/itsmehemant7/PyMovieDb",
     packages=setuptools.find_packages(),
     zip_safe=False,
-    install_requires=["requests-html"]
+    install_requires=["beautifulsoup4"]
 )
