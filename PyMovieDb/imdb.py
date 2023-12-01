@@ -81,13 +81,14 @@ class IMDB:
 
         # results = response.html.xpath("//table[@class='findList']/tr")
         results = response.html.xpath("//section[@data-testid='find-results-section-title']/div/ul/li")
-        #print(len(results))
+        # print(len(results))
         if tv is True:
             results = [result for result in results if "TV" in result.text]
 
         if person is True:
+            results = response.html.xpath("//section[@data-testid='find-results-section-name']/div/ul/li")
             results = [result for result in results if 'name' in result.find('a')[0].attrs['href']]
-        #print(results)
+        # print(results)
         output = []
         for result in results:
             name = result.text.replace('\n', ' ')
@@ -146,7 +147,7 @@ class IMDB:
         output = {
             "type": result.get('@type'),
             "name": result.get('name'),
-            "url": self.baseURL + result.get('url'),
+            "url": self.baseURL + result.get('url').split("/title")[-1],
             "poster": result.get('image'),
             "description": result.get('description'),
             "review": {
@@ -264,6 +265,7 @@ class IMDB:
          @returns:- Person's info as JSON string.
         """
         results = json.loads(self.search(name, person=True))
+        # print(results)
         url = results['results'][0].get('url')
         return self.get_person(url)
 
@@ -335,36 +337,42 @@ class IMDB:
         except requests.exceptions.ConnectionError as e:
             response = self.session.get(url, verify=False)
 
-        links = response.html.xpath('//h3/a')
-        years = response.html.xpath("//h3")
-
-        if not bool(links) and bool(years):
-            return self.NA
+        all_li = response.html.xpath('//ul[@role="presentation"]/li')
 
         output = []
-        for link, year in zip(links, years):
-            href = link.attrs.get('href', "#")
-            if 'title' in href:
-                # getting year
-                year = year.find('span', containing='(')[0] if bool(year.find('span', containing='(')) else ""
-                if bool(year):
-                    year = "".join(re.findall(r"\d+", year.text))
-                    year = year[:4] + "-" + year[4:] if len(year) == 8 else year   # for TV
-                    year = year if len(year) == 4 else year  # for movies
-                else:
-                    year = "N/A"
-                # getting poster
+        # for link, year in zip(links, years):
+        for li in all_li:
+            for obj in li.find('a'):
+                if ("title" in obj.attrs.get('href')) and (". " in obj.text):
+                    href = obj.attrs.get('href')
+                    name = obj.text.split(". ")[-1]
+                    break
+
+            # getting year
+            for span in li.find('span'):
+                if len(span.text.strip()) == 4:
+                    try:
+                        year = int(span.text.strip())
+                        break
+                    except:
+                        year = "N/A"
+
+            # getting poster
+            try:
                 file_id = href.split('/')[2]
-                poster = response.html.xpath(f"//img[@data-tconst='{file_id}']")
-                poster = poster[0].attrs.get('loadlate', 'image_not_found') if bool(poster) else 'image_not_found'
-                # creating file object
-                output.append({
-                    'id': file_id,
-                    'name': link.text,
-                    'year': year,
-                    'url': self.baseURL + href,
-                    'poster': poster
-                })
+                poster = li.xpath("//img[@loading='lazy']")
+                poster = poster[0].attrs.get('src')
+                poster = poster if bool(poster) else 'image_not_found'
+            except:
+                poster = 'image_not_found'
+            # creating file object
+            output.append({
+                'id': file_id,
+                'name': name,
+                'year': year,
+                'url': self.baseURL + href,
+                'poster': poster
+            })
 
         self.search_results = {'result_count': len(output), 'results': output}
         return json.dumps(self.search_results, indent=2)

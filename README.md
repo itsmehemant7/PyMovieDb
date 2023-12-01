@@ -20,6 +20,9 @@ Use ```pip``` to install the module from pypi
 
 
 ## Documentation 
+
+**_NOTE: The API will return data as JSON not dict_**
+
 **1) Getting a Movie/Tv-Series info :-**
 
 Use ``` get_by_name(<name>, tv=False) ``` method to get information of a movie/TV-Series.
@@ -30,60 +33,60 @@ On the other hand, if ```tv=False``` (default), it will find your file in ```Mov
 ```python
 >>> from PyMovieDb import IMDB
 >>> imdb = IMDB()
->>> res = imdb.get_by_name('House Of The Dragon', tv=True)
+>>> res = imdb.get_by_name('Reacher', tv=True)
 >>> print(res)
 >>> {
   "type": "TVSeries",
-  "name": "House of the Dragon",
-  "url": "https://www.imdb.com/title/tt11198330/",
-  "poster": "https://m.media-amazon.com/images/M/MV5BZDBkZjRiNGMtZGU2My00ODdkLWI0MGYtNGU4MmJjN2MzOTkxXkEyXkFqcGdeQXVyMDM2NDM2MQ@@._V1_.jpg",
-  "description": "House of the Dragon tells the story of an internal succession war within House Targaryen at the height of its power, 172 years before the birth of Daenerys Targaryen.",
+  "name": "Reacher",
+  "url": "https://www.imdb.com/tt9288030/",
+  "poster": "https://m.media-amazon.com/images/M/MV5BOWRiZjYwZjUtYmIwMy00ZDUzLTk2NjktZmJkZjRkNjU0MDE3XkEyXkFqcGdeQXVyMDM2NDM2MQ@@._V1_.jpg",
+  "description": "Jack Reacher was arrested for murder and now the police need his help. Based on the books by Lee Child.",
   "review": {
-    "author": "lmahesa",
-    "dateCreated": "2022-08-21",
+    "author": "TxMike",
+    "dateCreated": "2022-02-07",
     "inLanguage": "English",
-    "heading": "Very, very promising.",
-    "reviewBody": "Last week, I binged seasons 1-7 of GoT so those episodes are still very fresh in my mind and I am unaffected by rose tinted nostalgia.\n\nI&apos;ve just watched episode 1 of House of the Dragon.\n\nHow can I sum it up? So far, so good.\n\nThe music is sufficiently different to be fresh while remaining recognizable. The production quality and cinematography are as expected - fantastic, epic and awe inspiring, aside from a couple of excessively dark scenes that were over and done with very quickly.\n\nThere is gore aplenty. Nudity, vomit, sex and depravity. Incidental background humor. A promise of things to come.\n\nThe casting seems to be on point - I saw no issue with any of the characters, and the leads were well chosen for their roles.\n\nThe writing seems to be up to par. As an introduction, this episode was written and directed well. I want to see and know more - a good sign.\n\nSo far I&apos;m pleased with this return to the land of Westeros. Valar morghulis!",
+    "heading": "Jack Reacher, never looks for a fight but then never backs down from one.",
+    "reviewBody": "New TV series streaming from Amazon, my wife and I watched two episodes on each of four successive nights. Sort of like movie nights. This is not high art, the writing has lots of humor, in real life Reacher couldn&apos;t get away with everything depicted. BUT ... it is a very entertaining series. Especially for those of us who enjoy seeing a smart, mild-mannered, well-spoken, well-trained, big tough guy put the bad guys in their places. Some simple thugs, some unruly prison inmates, some dirty cops. Ritchson is a r real good pick for the role. (In an interview he said he gained 30 pounds for the role.)\n\nReacher is an ex-military man, he takes a bus to the small Georgia town, walks to town to look up an old blues singer&apos;s home, immediately gets arrested for murder, but eventually works with local law enforcement to help solve the mysteries, and there are several.\n\nMost episodes are roughly 45 to 50 minutes long, set in a fictional Georgia town not far from Atlanta. Cast and characters are interesting. The story is not too deep but surprisingly interesting, just good entertainment. Streaming on Amazon.",
     "reviewRating": {
-      "worstRating": 1,
-      "bestRating": 10,
-      "ratingValue": 9
+      "worstRating": null,
+      "bestRating": null,
+      "ratingValue": null
     }
   },
   "rating": {
-    "ratingCount": 77710,
+    "ratingCount": 155124,
     "bestRating": 10,
     "worstRating": 1,
-    "ratingValue": 8.8
+    "ratingValue": 8.1
   },
   "contentRating": "A",
-  "genre": ["Action","Adventure","Drama"],
-  "datePublished": "2022-08-22",
-  "keywords": "kingdom,prequel,knight,castle,sword",
+  "genre": [
+    "Action",
+    "Crime",
+    "Drama"
+  ],
+  "datePublished": "2022-02-04",
+  "keywords": "jack reacher character,reboot,reboot of series,based on book series,assassin",
   "duration": null,
   "actor": [
     {
-      "name": "Paddy Considine",
-      "url": "/name/nm0175916/"
+      "name": "Alan Ritchson",
+      "url": "https://www.imdb.com/name/nm2024927/"
     },
     {
-      "name": "Matt Smith",
-      "url": "/name/nm1741002/"
+      "name": "Maria Sten",
+      "url": "https://www.imdb.com/name/nm3080233/"
     },
     {
-      "name": "Rhys Ifans",
-      "url": "/name/nm0406975/"
+      "name": "Malcolm Goodwin",
+      "url": "https://www.imdb.com/name/nm0329511/"
     }
   ],
   "director": [],
   "creator": [
     {
-      "name": "Ryan J. Condal",
-      "url": "/name/nm2952284/"
-    },
-    {
-      "name": "George R.R. Martin",
-      "url": "/name/nm0552333/"
+      "name": "Nick Santora",
+      "url": "https://www.imdb.com/name/nm1238801/"
     }
   ]
 }
