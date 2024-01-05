@@ -52,6 +52,7 @@ class IMDB:
         self.NA = json.dumps({"status": 404, "message": "No Result Found!", 'result_count': 0, 'results': []})
 
     # ..................................method to search on IMDB...........................................
+
     def search(self, name, year=None, tv=False, person=False):
         """
          @description:- Helps to search a query on IMDB.
@@ -117,6 +118,7 @@ class IMDB:
         """
         try:
             response = self.session.get(url)
+
             result = response.html.xpath("//script[@type='application/ld+json']")[0].text
             result = ''.join(result.splitlines())  # removing newlines
             result = f"""{result}"""
@@ -237,6 +239,95 @@ class IMDB:
         assert isinstance(file_id, str)
         url = f"{self.baseURL}/title/{file_id}"
         return self.get(url)
+
+    """
+     @description:- Helps to search a list of tv episodes by the tv show's imdb ID.
+     @parameter-1:- <str:file_id>, imdb ID of the tv show.
+     @parameter-2:- <str:season_id>, optional season number (fetches all seasons if None).
+     @returns:- A JSON string:
+                - {
+                   'season_count': <int:total_seasons>,
+                   'seasons': <list:season_info_dict>
+                  }
+                  where <season_info_dict>:
+                  {
+                    'id': <int:season_number>,
+                    'episode_count': <int:total_episodes_in_season>,
+                    'episodes': <list:episode_info_dict>
+                  }
+                  where <episode_info_dict>:
+                  {
+                    'id': <int:episode_number>,
+                    'sid': <int:season_number>,
+                    'fqid': <str:S#E#>,
+                    'name': <str: episode_name>
+                  }
+    """
+    def get_episodes(self, file_id, season_id=None):
+        assert isinstance(file_id, str)
+        assert (season_id is None or isinstance(season_id, int) or
+                (isinstance(season_id, str) and season_id.isdigit()))
+
+        # <div class="ipc-title__text">S{#}.E{#} <middle-dot> {EpisodeName}</div>
+        episode_matcher = re.compile(r'^S(?P<sid>[0-9]+).E(?P<eid>[0-9]+)\s+.+?\s+(?P<name>.+)$')
+
+        initial_season_id = season_id if season_id else '1'
+        more_season_ids = []
+        episodes_by_season = {}
+
+        def do_request(s_id):
+            url = f"{self.baseURL}/title/{file_id}/episodes?season={s_id if s_id else '1'}"
+            try:
+                r = self.session.get(url)
+            except requests.exceptions.ConnectionError as e:
+                r = self.session.get(url, verify=False)
+            return r
+
+        def extract_episodes(r) -> list:
+            episodes = []
+            for episode_text in r.html.xpath("//div[@class='ipc-title__text']/text()"):
+                match = episode_matcher.search(episode_text)
+                if match:
+                    sid, eid = match.group('sid'), match.group('eid')
+                    episodes.append(
+                        {
+                            'id': match.group('eid'),
+                            'sid': match.group('sid'),
+                            'fqid': f"S{sid:0>2}E{eid:0>2}",
+                            'name': match.group('name'),
+                        }
+                    )
+            return episodes
+
+        # Load the initial page
+        response = do_request(initial_season_id)
+
+        # Grab the remaining season numbers if a season_id is not explicitly specified
+        if not season_id:
+            # <li ... data-testid="tab-season-entry">{SeasonNumber}</li>
+            more_season_ids = [
+                s for s in
+                response.html.xpath("//li[@data-testid='tab-season-entry']/text()")
+                if s != '1'
+            ]
+        # Grab initial page episodes
+        episodes_by_season[initial_season_id] = extract_episodes(response)
+
+        # Fetch the other seasons' episodes from their pages if needed
+        for s in more_season_ids:
+            response = do_request(s)
+            episodes_by_season[s] = extract_episodes(response)
+
+        return json.dumps(
+            {
+                'season_count': len(episodes_by_season),
+                'seasons': [
+                    {'id': sid, 'episode_count': len(eps), 'episodes': eps}
+                    for (sid, eps)
+                    in episodes_by_season.items()
+                ],
+            },
+            indent=2)
 
     # ........................................Methods for person profile...................................
     def get_person(self, url):
