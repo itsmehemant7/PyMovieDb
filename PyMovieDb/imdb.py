@@ -307,7 +307,7 @@ class IMDB:
             # <li ... data-testid="tab-season-entry">{SeasonNumber}</li>
             more_season_ids = [
                 s for s in
-                response.html.xpath("//li[@data-testid='tab-season-entry']/text()")
+                response.html.xpath("//ul/a[@data-testid='tab-season-entry']/text()")
                 if s != '1'
             ]
         # Grab initial page episodes
