@@ -3,9 +3,12 @@ import json
 import requests
 from PyMovieDb import ImdbParser
 from requests_html import HTMLSession
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import urllib3
+urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class IMDB:
@@ -284,19 +287,29 @@ class IMDB:
             return r
 
         def extract_episodes(r) -> list:
+            # In "newness" order; older versions tried only as fallbacks
+            episode_text_xpaths = [
+                "//div[@class='ipc-title__text ipc-title__text--reduced']/text()",
+                "//div[@class='ipc-title__text']/text()",
+            ]
             episodes = []
-            for episode_text in r.html.xpath("//div[@class='ipc-title__text']/text()"):
-                match = episode_matcher.search(episode_text)
-                if match:
-                    sid, eid = match.group('sid'), match.group('eid')
-                    episodes.append(
-                        {
-                            'id': match.group('eid'),
-                            'sid': match.group('sid'),
-                            'fqid': f"S{sid:0>2}E{eid:0>2}",
-                            'name': match.group('name'),
-                        }
-                    )
+            for xpath_def in episode_text_xpaths:
+                found_episode_text = False
+                for episode_text in r.html.xpath(xpath_def):
+                    found_episode_text = True
+                    match = episode_matcher.search(episode_text)
+                    if match:
+                        sid, eid = match.group('sid'), match.group('eid')
+                        episodes.append(
+                            {
+                                'id': match.group('eid'),
+                                'sid': match.group('sid'),
+                                'fqid': f"S{sid:0>2}E{eid:0>2}",
+                                'name': match.group('name'),
+                            }
+                        )
+                if found_episode_text:
+                    break
             return episodes
 
         # Load the initial page
