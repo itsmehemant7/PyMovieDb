@@ -50,11 +50,6 @@ class IMDB:
         self.timeout = timeout
         self.debug = debug
         self.session = HTMLSession()
-        self.headers = {
-           "Accept": "application/json, text/plain, */*",
-           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36",
-           "Referer": "https://www.imdb.com/"
-           }
         self.baseURL = "https://www.imdb.com"
         self.search_results = {'result_count': 0, 'results': []}
         self.NA = json.dumps({"status": 404, "message": "No Result Found!", 'result_count': 0, 'results': []})
