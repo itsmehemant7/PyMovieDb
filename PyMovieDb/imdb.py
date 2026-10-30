@@ -4,7 +4,7 @@ import requests
 from PyMovieDb import ImdbParser
 from requests_html import HTMLSession, HTML
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
+from urlrender import Renderer
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
@@ -50,6 +50,12 @@ class IMDB:
         self.timeout = timeout
         self.debug = debug
         self.session = HTMLSession()
+        self.headers = {
+           "Accept": "application/json, text/plain, */*",
+           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36",
+           "Referer": "https://www.imdb.com/"
+           }
+        self.renderer = Renderer()
         self.baseURL = "https://www.imdb.com"
         self.search_results = {'result_count': 0, 'results': []}
         self.NA = json.dumps({"status": 404, "message": "No Result Found!", 'result_count': 0, 'results': []})
@@ -83,19 +89,15 @@ class IMDB:
         
         self.print_me(f"searching: {url}")
 
-        try:
-            if self.proxy and self.proxy_res_parser:
-                response = self.session.get(self.proxy + url, timeout=self.timeout)
-                html = self.proxy_res_parser(response.json())
-                html = HTML(html=html)
-            else:
-                response = self.session.get(url)
-                html = response.html
-        except requests.exceptions.ConnectionError as e:
-            response = self.session.get(url, verify=False)
-            html = response.html
+        if self.proxy and self.proxy_res_parser:
+            response = self.session.get(self.proxy + url, timeout=self.timeout)
+            html = self.proxy_res_parser(response.json())
+            html = HTML(html=html)
+        else:
+            response = self.renderer.render(url)
+            html = HTML(html=response.html)
 
-        # results = response.html.xpath("//table[@class='findList']/tr")
+
         results = html.xpath("//section[@data-testid='find-results-section-title']/div/ul/li")
         self.print_me(f"Found: {len(results)} results")
 
@@ -136,14 +138,16 @@ class IMDB:
         """
         try:
             json_ld_path = "//script[@type='application/ld+json']"
+
             if self.proxy and self.proxy_res_parser:
                 response = self.session.get(self.proxy + url, timeout=self.timeout)
                 html = self.proxy_res_parser(response.json())
                 html = HTML(html=html)
                 result = html.xpath(json_ld_path)[0].text
             else:
-                response = self.session.get(url, timeout=self.timeout)
-                result = response.html.xpath(json_ld_path)[0].text
+                response = self.renderer.render(url)
+                html = HTML(html=response.html)
+                result = html.xpath(json_ld_path)[0].text
 
             result = ''.join(result.splitlines())  # removing newlines
             result = f"""{result}"""
@@ -274,8 +278,10 @@ class IMDB:
          @returns:- Person's info as JSON string.
         """
         try:
-            response = self.session.get(url)
-            result = response.html.xpath("//script[@type='application/ld+json']")[0].text
+            # response = self.session.get(url)
+            response = self.renderer.render(url)
+            html = HTML(html=response.html)
+            result = html.xpath("//script[@type='application/ld+json']")[0].text
             result = f"""{result}"""
             result = json.loads(result)
         except json.decoder.JSONDecodeError as e:
@@ -320,17 +326,15 @@ class IMDB:
         else:
             url = "https://www.imdb.com/calendar"
 
-        try:
-            response = self.session.get(url)
-        except requests.exceptions.ConnectionError as e:
-            response = self.session.get(url, verify=False)
+        response = self.renderer.render(url)
+        html = HTML(html=response.html)
 
         output = []
-        div = response.html.xpath("//main")[0]
+        div = html.xpath("//main")[0]
         # movies are divided/enlisted within article tag
         articles = div.find('article')
         for article in articles:
-            h3 = article.find('h3')[0]
+            h3 = article.find('h4',first=True)
             ul = article.xpath('//ul')[0].xpath('//li')
             for li in ul:
                 try:
@@ -355,45 +359,78 @@ class IMDB:
     # ............................................For Popular Movies.......................................
     def get_popular(self, url):
         """
-         @description:- Helps to search popular movies/TV-Series by url, (used by popular_movies() & popular_tv() ).
-         @parameter-1:- <str:url>, url to search.
-         @returns:- Files/Movies/TV-Series info as JSON string.
+        Search popular movies/TV-Series by URL.
+        Returns files/movies/TV-Series info as JSON string.
         """
         assert isinstance(url, str)
-        try:
-            response = self.session.get(url)
-        except requests.exceptions.ConnectionError as e:
-            response = self.session.get(url, verify=False)
 
-        all_li = response.html.xpath('//ul[@role="presentation"]/li')
+        response = self.renderer.render(url)
+        html = HTML(html=response.html)
+
+        # Get actual movie result items, avoiding nested metadata ULs.
+        all_li = html.xpath(
+            '//li[contains(concat(" ", normalize-space(@class), " "), '
+            '" ipc-metadata-list-summary-item ")]'
+        )
 
         output = []
-        # for link, year in zip(links, years):
+
         for li in all_li:
-            for obj in li.find('a'):
-                if ("title" in obj.attrs.get('href')) and (". " in obj.text):
-                    href = obj.attrs.get('href')
-                    name = obj.text.split(". ")[-1]
-                    break
+            href = None
+            name = None
+            file_id = None
 
-            # getting year
-            for span in li.find('span'):
-                if len(span.text.strip()) == 4:
-                    try:
-                        year = int(span.text.strip())
-                        break
-                    except:
-                        year = "N/A"
+            # Get title link
+            title_links = li.xpath(
+                './/a[contains(@href, "/title/") and .//h4]'
+            )
 
-            # getting poster
-            try:
-                file_id = href.split('/')[2]
-                poster = li.xpath("//img[@loading='lazy']")
-                poster = poster[0].attrs.get('src')
-                poster = poster if bool(poster) else 'image_not_found'
-            except:
-                poster = 'image_not_found'
-            # creating file object
+            if title_links:
+                title_link = title_links[0]
+                href = title_link.attrs.get('href')
+
+                title_heading = title_link.xpath('.//h4')
+
+                if title_heading:
+                    name = re.sub(
+                        r'^\s*\d+\.\s*',
+                        '',
+                        title_heading[0].text.strip()
+                    )
+
+            # Extract IMDb ID
+            if href:
+                match = re.search(r'/title/(tt\d+)', href)
+                file_id = match.group(1) if match else None
+
+            # Get year
+            match = re.search(
+                r'^\s*(\d{4})(?:\s*[-–—]\s*(\d{4}))?(?:\s*[-–—].*)?\s*$',
+                li.text,
+                re.MULTILINE
+            )
+
+            year = (
+                f"{match.group(1)}-{match.group(2)}"
+                if match and match.group(2)
+                else int(match.group(1)) if match
+                else "N/A"
+            )
+
+            # Get poster
+            images = li.xpath('.//img[@loading="lazy"]')
+
+            poster = (
+                images[0].attrs.get('src')
+                if images else None
+            )
+
+            poster = poster or 'image_not_found'
+
+            # Skip invalid entries
+            if not all([file_id, name, href]):
+                continue
+
             output.append({
                 'id': file_id,
                 'name': name,
@@ -402,8 +439,13 @@ class IMDB:
                 'poster': poster
             })
 
-        self.search_results = {'result_count': len(output), 'results': output}
+        self.search_results = {
+            'result_count': len(output),
+            'results': output
+        }
+
         return json.dumps(self.search_results, indent=2)
+
 
     def popular_movies(self, genre=None, start_id=1, sort_by=None):
         """
@@ -420,7 +462,10 @@ class IMDB:
             url = f"https://www.imdb.com/search/title/?title_type=movie&genres={genre}&start={start_id}&sort={sort_by}"
         else:
             url = f"https://www.imdb.com/search/title/?title_type=movie&start={start_id}&sort={sort_by}"
+
+        # print(f"Getting: {url}")
         return self.get_popular(url)
+
 
     def popular_tv(self, genre=None, start_id=1, sort_by=None):
         """
@@ -437,6 +482,8 @@ class IMDB:
             url = f"https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&genres={genre}&start={start_id}&sort={sort_by}"
         else:
             url = f"https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&start={start_id}&sort={sort_by}"
+
+        # print(f"Getting: {url}")
 
         return self.get_popular(url)
 

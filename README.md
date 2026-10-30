@@ -9,14 +9,16 @@ PyMovieDb is:
 * Free & easy to use.
 
 ****
-_*PyMovieDb is just arrived in the web/IT market, don't hesitate to fork and add new features/updates/issues etc. to it.*_
-****
 
 ## Installation
 PyMovieDb is available on [pypi](https://pypi.org/project/PyMovieDb/). 
 Use ```pip``` to install the module from pypi
 
 ```pip install PyMovieDb```
+
+##### - Ignore the pyppeteer dependency warning as we are not using pyppeteer
+
+****
 
 
 ## Documentation 
@@ -27,7 +29,13 @@ Use ```pip``` to install the module from pypi
 
 ***IMDB(proxy=None, proxy_res_parser = None, timeout=None, debug=False):***
 
-**_- Use custom parameters only if you want to use your own page render service i.e. in case if imdb.com pages require page rendering_**
+
+****
+
+### - [Optional] - Use custom parameters only if you want to use your own HTML page render service (IMDB.com pages requires page rendering). 
+
+### By default PyMovieDb uses Playwright to render pages
+
 
 - **proxy**: proxy URL if you want to use your own page render service. The page render proxy will open a url and return html content of the page.
 
@@ -59,6 +67,9 @@ Use ```pip``` to install the module from pypi
 
 - **timeout**: HTTPS request timeout, ```default = None```
 - **debug**: To print progress logs, ```default = False```
+
+
+****
 
 
 
